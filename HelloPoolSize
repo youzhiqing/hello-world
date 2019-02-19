@@ -1,0 +1,73 @@
+package com.test.com.test;  
+  
+import java.io.IOException;  
+import java.text.MessageFormat;  
+import java.util.Set;  
+import java.util.concurrent.Callable;  
+import java.util.concurrent.ExecutorService;  
+import java.util.concurrent.LinkedBlockingQueue;  
+import java.util.concurrent.ThreadPoolExecutor;  
+import java.util.concurrent.TimeUnit;  
+  
+public class HelloPoolSize {  
+  
+    private static final class OneMinuteTask implements Callable<Void> {  
+        public Void call() throws Exception {  
+            //            System.err.println("\t" + Thread.currentThread().getName()  
+            //                    + " 's call() method has been invoked");  
+            doSleep(1 * 60 * 1000);  
+            //            System.err.println("\t" + Thread.currentThread().getName()  
+            //                    + " 's call() method invocation done");  
+            return null;  
+        }  
+    };  
+  
+    public static void main(String[] args) throws IOException {  
+  
+        int queueCapacity = 6;  
+        LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(queueCapacity);  
+        ExecutorService executor = new ThreadPoolExecutor(2, 4, 1, TimeUnit.MINUTES, workQueue);  
+        System.out.print("线程池已创建，但还没添加任务。");  
+        printThreadAndQueueCount(workQueue, queueCapacity);  
+  
+        for (int i = 1; i <= 10; i++) {  
+            executor.submit(new OneMinuteTask());  
+            System.out.print("添加了第" + i + "个任务。 ");  
+            doSleep(1 * 1000);  
+            printThreadAndQueueCount(workQueue, queueCapacity);  
+  
+        }  
+  
+        for (int i = 1; i < 1000000; i++) {  
+            int timePeriod = 30;  
+            doSleep(timePeriod * 1000);  
+            System.out.print("过了" + (i * timePeriod) + "秒后，");  
+            printThreadAndQueueCount(workQueue, queueCapacity);  
+        }  
+  
+    }  
+  
+    private static void printThreadAndQueueCount(LinkedBlockingQueue<Runnable> workQueue,  
+                                                 int queueCapacity) throws IOException {  
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();  
+  
+        int threadCount = 0;  
+        for (Thread thread : threadSet) {  
+            if (thread.isDaemon() || thread.getName().equals("main")) {  
+                continue;  
+            }  
+            threadCount++;  
+        }  
+        System.out.println(MessageFormat.format("当前池内线程数：{0}; 当前队列中元素数：{1}/{2}", threadCount,  
+                workQueue.size(), queueCapacity));  
+  
+    }  
+  
+    private static void doSleep(long millis) {  
+        try {  
+            Thread.sleep(millis);  
+        } catch (InterruptedException e) {  
+            throw new RuntimeException(e);  
+        }  
+    }  
+}  
